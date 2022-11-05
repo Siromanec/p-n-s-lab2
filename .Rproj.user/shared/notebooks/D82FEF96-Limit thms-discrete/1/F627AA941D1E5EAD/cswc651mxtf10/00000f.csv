@@ -1,5 +1,0 @@
-"0","plot(ecdf(twopointdata), col = ""darkblue"", "
-"0","     main = ""ecdf of sample means"","
-"0","     xlim = c(min(twopointdata), max(twopointdata)),"
-"0","     xlab = ""t"","
-"0","     ylab = ""F(t)"")"

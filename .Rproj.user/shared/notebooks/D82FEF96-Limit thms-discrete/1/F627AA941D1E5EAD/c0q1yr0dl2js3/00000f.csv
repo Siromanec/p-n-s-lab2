@@ -1,6 +1,0 @@
-"0","twopointdata.norm <- (twopointdata - mu)/sigma "
-"0","plot(ecdf(twopointdata.norm), col = ""darkblue"", "
-"0","     main = ""ecdf of sample means"","
-"0","     xlim = c(-3,3),"
-"0","     xlab = ""t"","
-"0","     ylab = ""F(t)"")"
