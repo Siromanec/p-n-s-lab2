@@ -1,0 +1,5 @@
+"0","max(abs(ecdf(twopointdata.norm)(x)-pnorm(x)))"
+"1","[1]"
+"1"," 0.05343189"
+"1","
+"

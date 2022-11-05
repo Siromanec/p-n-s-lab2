@@ -1,0 +1,7 @@
+"0","xrange = c(min(twopointdata),max(twopointdata))"
+"0","hist(twopointdata,"
+"0","     probability = T, "
+"0","     breaks = 20, "
+"0","     xlim = xrange,"
+"0","     main = ""LLN for  discrete RV"","
+"0","     col = ""lightblue"");"

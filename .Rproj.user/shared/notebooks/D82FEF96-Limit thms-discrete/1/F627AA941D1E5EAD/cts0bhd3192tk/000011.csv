@@ -1,0 +1,6 @@
+"0","p <- .8"
+"0","n <- 100         # sample size"
+"0","m <- 1000        # no. of repetitions"
+"0","mu <- 2*p -1     # expected value"
+"0","sigma <- 2*sqrt(p*(1-p)/n) #standard deviation"
+"0","twopointdata  <- replicate(m, mean(sample(c(-1,1), size = n, prob = c(1-p,p), replace = T)))"
