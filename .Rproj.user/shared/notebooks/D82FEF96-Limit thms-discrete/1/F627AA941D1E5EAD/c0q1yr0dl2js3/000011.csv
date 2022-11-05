@@ -1,2 +1,0 @@
-"0","x <- seq(-3,3,by = .01)"
-"0","lines(x, pnorm(x), col = ""red"")"

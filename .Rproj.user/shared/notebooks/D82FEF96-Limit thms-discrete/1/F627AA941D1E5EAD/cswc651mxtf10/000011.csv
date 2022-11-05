@@ -1,2 +1,0 @@
-"0","x <- seq(min(twopointdata), max(twopointdata),by = .01)"
-"0","lines(x, pnorm(x, mean = mu, sd = sigma), col = ""red"")"
