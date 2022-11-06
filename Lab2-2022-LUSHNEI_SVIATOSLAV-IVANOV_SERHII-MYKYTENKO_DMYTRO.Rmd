@@ -6,6 +6,19 @@ output:
     df_print: paged
 ---
 
+```{r}
+set.seed(18)
+
+```
+
+```{r}
+# install.packages("remotes")
+# remotes::install_github("bwrc/semigeom-r")
+library(semigeom)
+
+
+```
+
 ## General comments and instructions
 
 -   Complete solution will give you $\bf 4$ points (out of 100 total). Submission deadline is **23:59 of 06 November 2022**\
@@ -63,7 +76,7 @@ $$
 ```{r}
 # your team id number 
                           ###
-id <- 50                  ### Change to the correct id!
+id <- 18                  ### Change to the correct id!
                           ###
 set.seed(id)
 p <- id/100
@@ -76,35 +89,118 @@ H <- t(matrix(c(1, 0, 1, 0, 1, 0, 1,
 		0, 1, 1, 0, 0, 1, 1,
 		0, 0, 0, 1, 1, 1, 1), nrow = 3, byrow = TRUE))
 # cat("The matrix G is: \n") 
-#G  
-#cat("The matrix H is: \n") 
-#H
-#cat("The product GH must be zero: \n")
-#(G%*%H) %%2
+# G  
+# cat("The matrix H is: \n") 
+# H
+# cat("The product GH must be zero: \n")
+# (G%*%H) %%2
 ```
 
 #### Next, generate the messages
 
 ```{r}
 # generate N messages
+set.seed(id)
+N = 1000000
 
 message_generator <- function(N) {
   matrix(sample(c(0,1), 4*N, replace = TRUE), nrow = N)
 }  
-messages <- message_generator(100)
-codewords <- (messages %*% G) %% 2
+msgs <- message_generator(N)
+codewords <- (msgs %*% G) %% 2
 ```
 
 #### Generate random errors; do not forget that they occur with probability $p$! Next, generate the received messages
 
 ```{r}
-#  errors <- ...
-#  received <-   
+
+# '1' stands for an err in its position
+set.seed(id)
+err_pr <- c(1-p, p)   # probabilities of getting a wrong bit
+errors <- matrix(sample(x =0:1, prob = err_pr, size = N*7, replace = T), ncol = 7, nrow =(N))#, nrow = N, ncol = 7);
+
+received <- xor(codewords, errors) %% 2
+corrections <- (received %*% H) %% 2
+correct.at = apply(corrections, MARGIN = 1, FUN = function(x) x[1]*1+x[2]*2+x[3]*4 )
+# flipping bits to correct the message. works correctly for only one error or zero 
+for (i in 1:N) {
+  received[i, correct.at[i]] = !received[i, correct.at[i]]
+}
+
+msgs.rec <- received[,c(3, 5, 6, 7)]
+hamming.dist <- rowSums (xor(msgs.rec, msgs) %%2)
+
+
+
 ```
+
+Let r.v. $X$ denote the number of wrongly decoded bits.\
+$X \sim B(7, p)$\
+The message is decoded when it has one or zero errors.\
+C = {the message is correct}\
+$P(C) = P(X = 0) + P(X = 1)$\
+$P(C) = C_7^0p^0(1-p)^7 + C_7^1p^1(1-p)^6 = (1-p)^7 + 7p(1-p)^6$
+
+```{r}
+p.theoretical = (1-p)^7 + 7*p*(1-p)^6
+print(p.theoretical)
+```
+
+```{r}
+p.empirical = (length(hamming.dist[hamming.dist == 0]))/N
+print(p.empirical)
+```
+
+As we can see p.theoretical is very close to p.empirical. For large numbers p.empirical converges to p.empirical thanks to LLT
+
+Now, that we know the $p^*$ of success, we can estimate the $\varepsilon$.\
+$\mu = p^*$, $\sigma = \sqrt{p^*(1-p^*)}$\
+So, let's rewrite $P\{\hat p \epsilon {(p^* - \varepsilon, p^* + \varepsilon)}\} \geq 0.95$\
+$P\{|\hat{p} - p^* | \leq \varepsilon\} \geq 0.95$\
+$P\{|\hat{p} - p^* | \geq \varepsilon\} \leq 0.05$\
+$P\{|\hat{p} - p^* | \geq \varepsilon\} =$\
+$P\{\dfrac{\sqrt{n}|\hat{p} - p^* |}{\sigma} \geq \dfrac{\sqrt{n}\varepsilon}{\sigma}\}$\
+By CLT $Z_n := \dfrac{\sqrt{n}(\hat{p} - p^* )}{\sigma} \rightarrow Z \sim N(0,1)$\
+$P\{ |Z_n| \geq \dfrac{\sqrt{n}\varepsilon}{\sigma}\} =$\
+$P\{ Z_n \geq \dfrac{\sqrt{n}\varepsilon}{\sigma}\} + P\{ Z_n \leq -\dfrac{\sqrt{n}\varepsilon}{\sigma}\} =$\
+$1 - P\{ Z_n \leq \dfrac{\sqrt{n}\varepsilon}{\sigma}\} + P\{ Z_n \leq -\dfrac{\sqrt{n}\varepsilon}{\sigma}\} =$\
+$1 - \Phi( \dfrac{\sqrt{n}\varepsilon}{\sigma}) + \Phi(-\dfrac{\sqrt{n}\varepsilon}{\sigma}) =$\
+$1 - 1 + \Phi(-\dfrac{\sqrt{n}\varepsilon}{\sigma}) + \Phi( -\dfrac{\sqrt{n}\varepsilon}{\sigma}) =$\
+$2\Phi(-\dfrac{\sqrt{n}\varepsilon}{\sigma}) \leq 0.05$\
+$\Phi(-\dfrac{\sqrt{n}\varepsilon}{\sigma}) \leq 0.025$\
+$-\Phi(\dfrac{\sqrt{n}\varepsilon}{\sigma}) \leq -0.975$\
+$\Phi(\dfrac{\sqrt{n}\varepsilon}{\sigma}) \geq 0.975$\
+$\dfrac{\sqrt{n}\varepsilon}{\sigma} \geq 1.96$\
+$\sqrt{n} \geq \dfrac{1.96*\sigma}{\varepsilon}$\
+$n \geq (\dfrac{1.96*\sigma}{\varepsilon})^2$\
+$n \geq (\dfrac{1.96*\sqrt{p^*(1-p^*)}}{\varepsilon})^2$\
+
+```{r}
+epsilon = 0.03
+sigma = sqrt(p.theoretical*(1-p.theoretical))
+n = floor((1.96*(sigma)/epsilon)^2) + 1
+print(n)
+```
+
+```{r}
+hist(hamming.dist,
+    probability = TRUE,
+    breaks = 6,
+   #breaks = seq(0.5,6.6),
+    main = paste("Histogram of the number of digits wrongly decoded by hamming code"),
+    col = "lightblue",
+    xlab = "Values",
+    xlim = c(0,4)
+    )
+```
+
+This doesn't look like any of the known distributions. At first I thought it was it was a poisson distribution, but this distribution has a
 
 The next steps include detecting the errors in the received messages, correcting them, and then decoding the obtained messages. After this, you can continue with calculating all the quantities of interest
 
 **Do not forget to include several sentences summarizing your work and the conclusions you have made!**
+
+In conclusion,
 
 ### Task 2.
 
@@ -127,27 +223,52 @@ The next steps include detecting the errors in the received messages, correcting
     -   repeat this $K$ times to get the sample $\mathbf{s}=(s_1,\dots,s_K)$ of sums;
     -   calculate the number of elements of the sample which are less than critical value ($8 \times 10^8$) and calculate the empirical probability; comment whether it is close to the desired level $0.95$
 
+#### 1.Specify the parameter of the Poisson distribution:
+
+$\nu = \lambda * N = \frac{ln(2)}{T[s]} * \frac{m}{M}N_A * teamId \approx 57564607 \approx 5.76*10^7$
+
 ```{r}
-lambda <- 1  # change this!
-N <- 100     # change this!
+teamid = 18
+lambda <- log(2)/(30.1*31536000)  # change this!
+N <- teamid*6*10**17/137     # change this!
 mu <- N * lambda
+print(mu)
+```
+
+#### Simulate the realization of sample means
+
+```{r}
+set.seed(teamid)
 K <- 1e3
-n <- 5
+n <- 50  # change N
 sample_means <- colMeans(matrix(rpois(n*K, lambda = mu), nrow=n))
 ```
 
 #### Next, calculate the parameters of the standard normal approximation
 
+$$S_n =X_1 + X_2 + ... + X_n$$ $$M_n = S_n / n$$ As long as S is a sum of n i.i.d.r.v. X of Poisson distribution with paramater\
+$\lambda$. $$\mu = E(X_i) = \lambda \ \ \ \ and  \ \ \ \sigma^2 =Var(X_i) = \lambda$$\
+$$E(S_n) = E(\sum X_i) = n*E(X_i) = n\lambda$$\
+$$\sigma^2 = Var(S_n) = Var(\sum X_i) = nVar(X_i) = n\lambda $$\
+$$E(M_n) = E(S_n)/n = \lambda$$\
+$$\sigma^2 = Var(M_n) = Var(S_n)/n^2 = \lambda/n$$\
+Lets consider $Z_n = \frac{M_n - \lambda}{\sqrt{\frac{\lambda}{n}}} = \frac{M_n - \lambda}{\sqrt{\frac{\lambda}{n}}} \sim N(0,1)$\
+By CLT we will get that M_n converges in low to Normal $$M_n \sim N(\lambda, \frac{\lambda}{n})$$\
+And parameters are: $\mu = \lambda$ $\sigma=\sqrt{lambda/n}$\
+
 ```{r}
-mu <- 0       # change this!
-sigma <- 1    # change this!
+
+
+mu <- mu   # mu = n * mu / n
+sigma <- sqrt(mu/n)   # sd = sqrt(Var[mean])/n = sqrt(n*Var[one]) / n = sqrt(mu/n)
 ```
 
 #### We can now plot ecdf and cdf
 
 ```{r}
-xlims <- c(mu-3*sigma,mu+3*sigma)
+xlims <- c(mu-3*sigma, mu+3*sigma)
 Fs <- ecdf(sample_means)
+
 plot(Fs, 
      xlim = xlims, 
      ylim = c(0,1),
@@ -155,11 +276,128 @@ plot(Fs,
      lwd = 2,
      main = "Comparison of ecdf and cdf")
 curve(pnorm(x, mean = mu, sd = sigma), col = "red", lwd = 2, add = TRUE)
+
 ```
 
-**Next, proceed with all the remaining steps**
+#### The maximal difference between the two c.d.f.'s
 
-**Do not forget to include several sentences summarizing your work and the conclusions you have made!**
+```{r}
+xl <- seq(mu-3*sigma, mu+3*sigma, by=0.01)
+
+max_diff <- max(abs(ecdf(sample_means)(xl)-pnorm(xl, mean = mu,  sd = sigma)))
+
+cat("For N =", n, "maximal difference between the two c.d.f.’s =", max_diff)
+```
+
+For N = 50 maximal difference between the two c.d.f.'s = 0.02367508 For N = 25 maximal difference between the two c.d.f.'s = 0.01870537 For N = 10 maximal difference between the two c.d.f.'s = 0.01858273 For N = 5 maximal difference between the two c.d.f.'s = 0.02068409 \#### Depending on different n
+
+```{r}
+mean_results_on_N <- function(n, K){
+  teamid = 18
+  set.seed(teamid)
+  
+  lambda <- log(2)/(30.1*31536000)
+  N <- teamid*6*10**17/137
+  mu <- N * lambda
+  
+  sample_means <- colMeans(matrix(rpois(n*K, lambda = mu), nrow=n)) # create samples ( s1, s2, s.. sk)
+
+  # obtain Normal distr parameters
+  mu <- mu   # change this!
+  sigma <- sqrt(mu/n)   # change this!
+  
+  # get ecdf
+  Fs <- ecdf(sample_means)
+  
+  # plot results
+  xlims <- c(mu-3*sigma, mu+3*sigma)
+  plot(Fs, 
+       xlim = xlims, 
+       ylim = c(0,1),
+       col = "blue",
+       lwd = 2,
+       main = "Comparison of ecdf and cdf")
+  # plot normal dist cdf
+  curve(pnorm(x, mean = mu, sd = sigma), col = "red", lwd = 2, add = TRUE)
+  
+  # calculate maximal difference
+  xl <- seq(mu-3*sigma, mu+3*sigma, by=0.01)
+  max_diff <- max(abs(ecdf(sample_means)(xl)-pnorm(xl, mean = mu, sd = sigma)))
+  cat("For N =", n, "maximal difference between the two c.d.f.’s =", max_diff, "\n")
+  
+  return(sample_means)
+}
+samples <-mean_results_on_N(5, 1e3)
+samples <-mean_results_on_N(10, 1e3)
+samples <-mean_results_on_N(50, 1e3)
+```
+
+#### Subtask2
+
+```{r}
+sum_results_on_N <- function(n, K){
+  teamid = 18
+  set.seed(teamid)
+  
+  lambda <- log(2)/(30.1*31536000)
+  N <- teamid*6*10**17/137
+  mu <- N * lambda
+  
+  sample_sums <- colSums(matrix(rpois(n*K, lambda = mu), nrow=n))
+
+  mu <- mu   # change this!
+  sigma <- sqrt(mu/n)   # change this!
+  thres = 8*10**8
+  emprob <- sum(sample_sums<tres)/K
+  return(emprob)
+
+}
+x = 12
+while(TRUE){
+  curr_result <-sum_results_on_N(x, 1e3)
+  cat("For n =", x, "Empirical Probability is ", curr_result, "\n")
+  if (curr_result < 0.95){
+    cat("Maximal value of n:", x-1)
+    break
+  }
+  x = x + 1
+}
+
+```
+
+#### Theoretical results
+
+We have that $S =X_1 + X_2 + ... + X_n$ must be less than $t = 8*10^8$\
+
+$$ P(S < t) = 1- P(S \geq t) \geq 0.95  \implies P(S\geq t) \leq 0.05$$\
+As long as S is a sum of n i.i.d.r.v. X of Poisson distribution with paramater\
+$\lambda$. $$\mu = E(X_i) = \lambda \ \ \ \ and  \ \ \ \sigma^2 =Var(X_i) = \lambda$$\
+$$E(S) = E(\sum X_i) = n*E(X_i) = n\lambda$$\
+$$\sigma^2 = Var(S) = Var(\sum X_i) = nVar(X_i) = n\lambda $$\
+\##### Markov inequality\
+$$ P(S \geq t)  \leq \frac{E(S)}{t} = \frac{n\lambda}{t}$$\
+We know that higer bound probability must be less than 0.05\
+$$ \frac{n\lambda}{t} \leq 0.05 \implies n \leq  \frac{0,05t}{\lambda} \approx 0.7$$\
+As we can see Markov gives quite not an accurate result. It states that for all n P(S\<t) will be greater than 0.95\
+
+##### Chebyshev inequality
+
+$$P(S \geq t) = P(S - n\mu \geq t-n\mu) \leq P(|S-n\mu|\geq t-n\mu)$$\
+Using Chebyshev inequality:\
+$$ P(|S-n\mu|\geq t-n\mu) \leq (\frac{\sigma^2}{t-n\mu})^2 = (\frac{n\lambda}{t-n\lambda})^2$$ $$ (\frac{n\lambda}{t-n\lambda})^2 \leq 0.05 \implies n\lambda * ( 1 -\sqrt{0.05}) \leq t \implies n \leq 17.9...$$\
+
+#### Central Limit Theorem
+
+$$P(S\leq t) = P( \frac{S-n\mu}{\sigma\sqrt{n}} \leq \frac{t-n\mu}{\sigma\sqrt{n}}) = Ф( \frac{t-n\mu}{\sigma\sqrt{n}}) \geq 0.95 \implies  \frac{t-n\mu}{\sigma\sqrt{n}} \geq  Ф^{-1}(0.95) $$\
+$Ф^{-1}(0.95) \approx 1.67$ and we got a quadratic inequality:\
+$$ n\lambda+ 1.67*\sqrt{n\lambda} \leq t$$\
+That gives the higher bound $n \approx 13.7 \approx 14$\
+
+##### Summary
+
+AS we can see the results given with Markov inequality (0) are very not accurate and do not give us any bounds. Chebyshev inequality gives better approximation (18) but still not very accurate. And the central Limit Theorem gives results very close to the experimental ones (Both are equal to 14)
+
+#### Conclusion
 
 ### Task 3.
 
@@ -183,10 +421,10 @@ curve(pnorm(x, mean = mu, sd = sigma), col = "red", lwd = 2, add = TRUE)
 #### First, generate samples an sample means:
 
 ```{r}
-set.seed(18)
-nu1 <- 28 # team 18 + 10
-K <- 1e3  # number of clicks
-n <- 5    
+teamid = 18
+nu1 <- 10  + teamid  # change this!
+K <- 1e3
+n <- 5
 sample_means <- colMeans(matrix(rexp(n*K, rate = nu1), nrow=n))
 hist(sample_means, 
      breaks = 100,
@@ -196,11 +434,29 @@ hist(sample_means,
 
 #### Next, calculate the parameters of the standard normal approximation
 
+$$S_n =X_1 + X_2 + ... + X_n$$\
+$$M_n = S_n / n$$\
+
+As long as S is a sum of n i.i.d.r.v. X of Exponential distribution with paramater\
+$\lambda$. $$\mu = E(X_i) = 1/ \lambda \ \ \ \ and  \ \ \ \sigma^2 =Var(X_i) = 1/\lambda^2$$\
+$$E(S_n) = E(\sum X_i) = n*E(X_i) = n/\lambda$$\
+$$\sigma^2 = Var(S_n) = Var(\sum X_i) = nVar(X_i) = n/\lambda^2 $$\
+$$E(M_n) = E(S_n)/n = 1/\lambda$$\
+$$\sigma^2 = Var(M_n) = Var(S_n)/n^2 = 1/\lambda n$$\
+$$ Z_n = \frac{M_n - \mu}{\sigma} = \frac{M_n - 1/\lambda}{\sqrt{1/\lambda n}}$$\
+By CLT we will get that M_n converges in low to Normal $$M_n \sim N(\frac{1}{\lambda}, \frac{1}{n\lambda})$$\
+And parameters are: $\mu = 1/\lambda$ $\sigma= 1/\sqrt{\lambda n}$\
+
 ```{r}
-mu <- mean(sample_means)       # mean of sample
-sigma <- sd(sample_means)    # variance of sample
-print(mu)
-print(sigma)
+
+#mu <- mean(sample_means)       # mean of sample
+#sigma <- sd(sample_means)    # variance of sample
+#print(mu)
+#print(sigma)
+
+mu <- 1/nu1   # change this!
+sigma <- 1/(nu1*sqrt(n))   # change this!
+
 ```
 
 #### We can now plot ecdf and cdf
@@ -214,9 +470,15 @@ plot(e_cdf,
      lwd = 2,
      main = "Comparison of ecdf and cdf")
 curve(pnorm(x, mean = mu, sd = sigma), col = "red", lwd = 2, add = TRUE)
+
+
+xl <- seq(mu-3*sigma, mu+3*sigma, by=0.01)
+max_diff <- max(abs(ecdf(sample_means)(xl)-pnorm(xl, mean = mu, sd = sigma)))
+cat("For N =", n, "maximal difference between the two c.d.f.’s =", max_diff, "\n")
 ```
 
 ```{r}
+
 # maximum distance?
 # following from Kolmogorov-Smirnov(should be valid here?)
 t_cdf <- pnorm(sample_means, mean = mu, sd = sigma)
@@ -241,6 +503,75 @@ for(n in list(5, 10, 50)){
 ```
 
 ### Part 2
+
+```{r}
+mean_results_on_N <- function(n, K){
+  teamid = 18
+  set.seed(teamid)
+  nu1 <- teamid + 10
+  
+  sample_means <- colMeans(matrix(rexp(n*K, rate = nu1), nrow=n))
+
+  # obtain Normal distr parameters
+  mu <- 1/nu1   # change this!
+  sigma <- 1/(nu1*sqrt(n))   # change this!
+  
+  # get ecdf
+  Fs <- ecdf(sample_means)
+  
+  # plot results
+  xlims <- c(mu-3*sigma, mu+3*sigma)
+  plot(Fs, 
+       xlim = xlims, 
+       ylim = c(0,1),
+       col = "blue",
+       lwd = 2,
+       main = "Comparison of ecdf and cdf")
+  # plot normal dist cdf
+  curve(pnorm(x, mean = mu, sd = sigma), col = "red", lwd = 2, add = TRUE)
+  
+  # calculate maximal difference
+  xl <- seq(mu-3*sigma, mu+3*sigma, by=0.01)
+  max_diff <- max(abs(ecdf(sample_means)(xl)-pnorm(xl, mean = mu, sd = sigma)))
+  cat("For N =", n, "maximal difference between the two c.d.f.’s =", max_diff, "\n")
+  
+  return(sample_means)
+}
+res <- mean_results_on_N(5, 1e3)
+res <- mean_results_on_N(10, 1e3)
+res <-mean_results_on_N(50, 1e3)
+```
+
+```{r}
+sum_results_on_N <- function(N, K){
+  teamid = 18
+  set.seed(teamid)
+  n <- 100
+  nu <- (teamid + 10)*N
+  sample_sums <- colSums(matrix(rexp(n*K, rate = nu), nrow=n))
+
+  thres <- 1
+  eprob <- sum(sample_sums<thres)/K
+  return (eprob)
+}
+print(sum_results_on_N(4, 1e3))
+
+x = 6
+while(TRUE){
+  curr_result <-sum_results_on_N(x, 1e3)
+  cat("For n =", x, "Empirical Probability is ", curr_result, "\n")
+  if (curr_result < 0.95){
+    cat("Maximal value of n:", x+1)
+    break
+  }
+  x = x - 1
+}
+
+```
+
+**Next, proceed with all the remaining steps**
+
+**Do not forget to include several sentences summarizing your work and the conclusions you have made!**
 
 ### General summary and conclusions
 
