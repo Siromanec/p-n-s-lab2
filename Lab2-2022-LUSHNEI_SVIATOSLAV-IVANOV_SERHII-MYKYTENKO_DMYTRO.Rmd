@@ -1,13 +1,20 @@
 ---
 title: 'P&S-2022: Lab assignment 2'
-author: "Name1, Name2, Name3"
+author: "Ivanov Serhii, Lushnei Sviatoslav, Mykytenko Dmytro"
 output:
   html_document:
     df_print: paged
 ---
-
+work distribution -  "Ivanov Serhii - 1, Lushnei Sviatoslav - 2, Mykytenko Dmytro - 3"
 ```{r}
 set.seed(18)
+
+```
+```{r}
+# install.packages("remotes")
+# remotes::install_github("bwrc/semigeom-r")
+library(semigeom)
+
 
 ```
 
