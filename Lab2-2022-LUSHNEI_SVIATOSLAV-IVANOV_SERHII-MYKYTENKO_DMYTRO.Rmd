@@ -95,6 +95,7 @@ H <- t(matrix(c(1, 0, 1, 0, 1, 0, 1,
 
 ```{r}
 # generate N messages
+set.seed(id)
 N = 1000000
 
 message_generator <- function(N) {
@@ -107,10 +108,10 @@ codewords <- (msgs %*% G) %% 2
 #### Generate random errors; do not forget that they occur with probability $p$! Next, generate the received messages
 
 ```{r}
-#codewords
+
 # '1' stands for an err in its position
 set.seed(id)
-err_pr <- c(1-p, p)   # probabilities of throwing sides 1 to 6
+err_pr <- c(1-p, p)   # probabilities of getting a wrong bit
 errors <- matrix(sample(x =0:1, prob = err_pr, size = N*7, replace = T), ncol = 7, nrow =(N))#, nrow = N, ncol = 7);
 
 received <- xor(codewords, errors) %% 2
@@ -137,12 +138,44 @@ $P(C) = C_7^0p^0(1-p)^7 + C_7^1p^1(1-p)^6 = (1-p)^7 + 7p(1-p)^6$
 
 ```{r}
 p.theoretical = (1-p)^7 + 7*p*(1-p)^6
+print(p.theoretical)
 ```
 
 ```{r}
 p.empirical = (length(hamming.dist[hamming.dist == 0]))/N
+print(p.empirical)
 ```
+As we can see p.theoretical is very close to p.empirical. For large numbers p.empirical converges to p.empirical thanks to LLT
 
+
+Now, that we know the $p^*$ of success, we can estimate the $\varepsilon$.\
+$\mu = p^*$, $\sigma = \sqrt{p^*(1-p^*)}$\
+So, let's rewrite $P\{\hat p \epsilon {(p^* - \varepsilon, p^* + \varepsilon)}\} \geq 0.95$\
+$P\{|\hat{p} - p^* | \leq \varepsilon\} \geq 0.95$\
+$P\{|\hat{p} - p^* | \geq \varepsilon\} \leq 0.05$\
+$P\{|\hat{p} - p^* | \geq \varepsilon\} =$\
+$P\{\dfrac{\sqrt{n}|\hat{p} - p^* |}{\sigma} \geq \dfrac{\sqrt{n}\varepsilon}{\sigma}\}$\
+By CLT $Z_n := \dfrac{\sqrt{n}(\hat{p} - p^* )}{\sigma} \rightarrow Z \sim N(0,1)$\
+$P\{ |Z_n| \geq \dfrac{\sqrt{n}\varepsilon}{\sigma}\} =$\
+$P\{ Z_n \geq \dfrac{\sqrt{n}\varepsilon}{\sigma}\} + P\{ Z_n \leq -\dfrac{\sqrt{n}\varepsilon}{\sigma}\} =$\
+$1 - P\{ Z_n \leq \dfrac{\sqrt{n}\varepsilon}{\sigma}\} + P\{ Z_n \leq -\dfrac{\sqrt{n}\varepsilon}{\sigma}\} =$\
+$1 - \Phi( \dfrac{\sqrt{n}\varepsilon}{\sigma}) + \Phi(-\dfrac{\sqrt{n}\varepsilon}{\sigma}) =$\
+$1 - 1 + \Phi(-\dfrac{\sqrt{n}\varepsilon}{\sigma}) + \Phi( -\dfrac{\sqrt{n}\varepsilon}{\sigma}) =$\
+$2\Phi(-\dfrac{\sqrt{n}\varepsilon}{\sigma}) \leq 0.05$\
+$\Phi(-\dfrac{\sqrt{n}\varepsilon}{\sigma}) \leq 0.025$\
+$-\Phi(\dfrac{\sqrt{n}\varepsilon}{\sigma}) \leq -0.975$\
+$\Phi(\dfrac{\sqrt{n}\varepsilon}{\sigma}) \geq 0.975$\
+$\dfrac{\sqrt{n}\varepsilon}{\sigma} \geq 1.96$\
+$\sqrt{n} \geq \dfrac{1.96*\sigma}{\varepsilon}$\
+$n \geq (\dfrac{1.96*\sigma}{\varepsilon})^2$\
+$n \geq (\dfrac{1.96*\sqrt{p^*(1-p^*)}}{\varepsilon})^2$\
+
+```{r}
+epsilon = 0.03
+sigma = sqrt(p.theoretical*(1-p.theoretical))
+n = floor((1.96*(sigma)/epsilon)^2) + 1
+print(n)
+```
 ```{r}
 hist(hamming.dist,
     probability = TRUE,
@@ -151,22 +184,15 @@ hist(hamming.dist,
     main = paste("Histogram of the number of digits wrongly decoded by hamming code"),
     col = "lightblue",
     xlab = "Values",
-    xlim = c(0,5)
+    xlim = c(0,4)
     )
 ```
-
-Now, that we know the $p^*$ of success, we can estimate the $\varepsilon$.\
-$\mu = p$, $\sigma = \sqrt{p(1-p)}$, $S_n = nI$\
-$$P\{I_n \leq t\} = P\{S_n \leq nt\} =$$\
-$$ = P\{S_n -\mu{n} \leq nt - \mu{n}\} =$$\
-$$= P\{\dfrac{S_n -\mu{n}}{\sigma \sqrt{n}} \leq \dfrac{nt - \mu{n}}{\sigma \sqrt{n}}\} = $$\
-$$P\{\dfrac{S_n -\mu{n}}{\sigma \sqrt{n}} \leq \dfrac{\sqrt{n}(t - \mu{})}{\sigma} \}$$\
-$$ \rightarrow \Phi(\dfrac{\sqrt{n}(t - \mu{})}{\sigma}) = \Phi(\dfrac{\sqrt{n}(t - p)}{\sqrt{p(1-p)}})$$\
-$P\{|\hat{p} - p | \geq \varepsilon\} = P\{ |Z_n| \geq \dfrac{\sqrt{n}\varepsilon}{\sqrt{p(1-p)}}\} = 2P\{ Z_n \leq -\dfrac{\sqrt{n}\varepsilon}{\sqrt{p(1-p)}}\} \approx 2\Phi(-\dfrac{\sqrt{n}\varepsilon }{\sqrt{p(1-p)}})$\
+This doesn't look like any of the known distributions. At first I thought it was it was a poisson distribution, but this distribution has a 
 
 The next steps include detecting the errors in the received messages, correcting them, and then decoding the obtained messages. After this, you can continue with calculating all the quantities of interest
 
 **Do not forget to include several sentences summarizing your work and the conclusions you have made!**
+In conclusion, 
 
 ### Task 2.
 
