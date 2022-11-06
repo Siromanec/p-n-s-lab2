@@ -1,6 +1,6 @@
 ---
 title: 'P&S-2022: Lab assignment 2'
-author: "Name1, Name2, Name3"
+author: "Ivanov Serhii, Lushnei Sviatoslav, Mykytenko Dmytro"
 output:
   html_document:
     df_print: paged
@@ -18,6 +18,8 @@ library(semigeom)
 
 
 ```
+
+work distribution - "Ivanov Serhii - 1, Lushnei Sviatoslav - 2, Mykytenko Dmytro - 3"
 
 ## General comments and instructions
 
@@ -194,13 +196,15 @@ hist(hamming.dist,
     )
 ```
 
-This doesn't look like any of the known distributions. At first I thought it was it was a poisson distribution, but this distribution has a
+This doesn't look like any of the known distributions. At first we thought it was a poisson distribution with parameter 1, because of the big spike at the begning, but the second spike threw us off. As far, as we\`re concerned, there is no distribution that has two spikes (at least there was no in P&S course, the internet suggests that this is a bimodal distribution)
 
 The next steps include detecting the errors in the received messages, correcting them, and then decoding the obtained messages. After this, you can continue with calculating all the quantities of interest
 
 **Do not forget to include several sentences summarizing your work and the conclusions you have made!**
 
-In conclusion,
+#### Conclusion
+
+In conclusion, we observed that the empirical probability converges to the theoretical one.
 
 ### Task 2.
 
@@ -576,3 +580,9 @@ while(TRUE){
 ### General summary and conclusions
 
 SUmmarize here what you've done, whether you solved the tasks, what difficulties you had etc
+
+We've solved all three tasks. We've explored how random events affect some of the real-life examples.
+
+Generally, theoretical work took much more time than coding.
+
+The difficulties: chebushevs inequality, trying to write one-liners in 'R style', matrices
