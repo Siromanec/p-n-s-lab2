@@ -1,6 +1,6 @@
 ---
 title: 'P&S-2022: Lab assignment 2'
-author: "Ivanov Serhii, Lushnei Sviatoslav, Mykytenko Dmytro"
+author: "Name1, Name2, Name3"
 output:
   html_document:
     df_print: paged
@@ -10,16 +10,6 @@ output:
 set.seed(18)
 
 ```
-
-```{r}
-# install.packages("remotes")
-# remotes::install_github("bwrc/semigeom-r")
-library(semigeom)
-
-
-```
-
-work distribution - "Ivanov Serhii - 1, Lushnei Sviatoslav - 2, Mykytenko Dmytro - 3"
 
 ## General comments and instructions
 
@@ -78,7 +68,7 @@ $$
 ```{r}
 # your team id number 
                           ###
-id <- 18                  ### Change to the correct id!
+id <- 50                  ### Change to the correct id!
                           ###
 set.seed(id)
 p <- id/100
@@ -91,120 +81,37 @@ H <- t(matrix(c(1, 0, 1, 0, 1, 0, 1,
 		0, 1, 1, 0, 0, 1, 1,
 		0, 0, 0, 1, 1, 1, 1), nrow = 3, byrow = TRUE))
 # cat("The matrix G is: \n") 
-# G  
-# cat("The matrix H is: \n") 
-# H
-# cat("The product GH must be zero: \n")
-# (G%*%H) %%2
+#G  
+#cat("The matrix H is: \n") 
+#H
+#cat("The product GH must be zero: \n")
+#(G%*%H) %%2
 ```
 
 #### Next, generate the messages
 
 ```{r}
 # generate N messages
-set.seed(id)
-N = 1000000
 
 message_generator <- function(N) {
   matrix(sample(c(0,1), 4*N, replace = TRUE), nrow = N)
 }  
-msgs <- message_generator(N)
-codewords <- (msgs %*% G) %% 2
+messages <- message_generator(100)
+codewords <- (messages %*% G) %% 2
 ```
 
 #### Generate random errors; do not forget that they occur with probability $p$! Next, generate the received messages
 
 ```{r}
-
-# '1' stands for an err in its position
-set.seed(id)
-err_pr <- c(1-p, p)   # probabilities of getting a wrong bit
-errors <- matrix(sample(x =0:1, prob = err_pr, size = N*7, replace = T), ncol = 7, nrow =(N))#, nrow = N, ncol = 7);
-
-received <- xor(codewords, errors) %% 2
-corrections <- (received %*% H) %% 2
-correct.at = apply(corrections, MARGIN = 1, FUN = function(x) x[1]*1+x[2]*2+x[3]*4 )
-# flipping bits to correct the message. works correctly for only one error or zero 
-for (i in 1:N) {
-  received[i, correct.at[i]] = !received[i, correct.at[i]]
-}
-
-msgs.rec <- received[,c(3, 5, 6, 7)]
-hamming.dist <- rowSums (xor(msgs.rec, msgs) %%2)
-
-
-
+errors <- function(N){
+  matrix(sample(c(0,1), 4*N, replace = TRUE), nrow = N)}
+#  received <-   
+#  
 ```
-
-Let r.v. $X$ denote the number of wrongly decoded bits.\
-$X \sim B(7, p)$\
-The message is decoded when it has one or zero errors.\
-C = {the message is correct}\
-$P(C) = P(X = 0) + P(X = 1)$\
-$P(C) = C_7^0p^0(1-p)^7 + C_7^1p^1(1-p)^6 = (1-p)^7 + 7p(1-p)^6$
-
-```{r}
-p.theoretical = (1-p)^7 + 7*p*(1-p)^6
-print(p.theoretical)
-```
-
-```{r}
-p.empirical = (length(hamming.dist[hamming.dist == 0]))/N
-print(p.empirical)
-```
-
-As we can see p.theoretical is very close to p.empirical. For large numbers p.empirical converges to p.empirical thanks to LLT
-
-Now, that we know the $p^*$ of success, we can estimate the $\varepsilon$.\
-$\mu = p^*$, $\sigma = \sqrt{p^*(1-p^*)}$\
-So, let's rewrite $P\{\hat p \epsilon {(p^* - \varepsilon, p^* + \varepsilon)}\} \geq 0.95$\
-$P\{|\hat{p} - p^* | \leq \varepsilon\} \geq 0.95$\
-$P\{|\hat{p} - p^* | \geq \varepsilon\} \leq 0.05$\
-$P\{|\hat{p} - p^* | \geq \varepsilon\} =$\
-$P\{\dfrac{\sqrt{n}|\hat{p} - p^* |}{\sigma} \geq \dfrac{\sqrt{n}\varepsilon}{\sigma}\}$\
-By CLT $Z_n := \dfrac{\sqrt{n}(\hat{p} - p^* )}{\sigma} \rightarrow Z \sim N(0,1)$\
-$P\{ |Z_n| \geq \dfrac{\sqrt{n}\varepsilon}{\sigma}\} =$\
-$P\{ Z_n \geq \dfrac{\sqrt{n}\varepsilon}{\sigma}\} + P\{ Z_n \leq -\dfrac{\sqrt{n}\varepsilon}{\sigma}\} =$\
-$1 - P\{ Z_n \leq \dfrac{\sqrt{n}\varepsilon}{\sigma}\} + P\{ Z_n \leq -\dfrac{\sqrt{n}\varepsilon}{\sigma}\} =$\
-$1 - \Phi( \dfrac{\sqrt{n}\varepsilon}{\sigma}) + \Phi(-\dfrac{\sqrt{n}\varepsilon}{\sigma}) =$\
-$1 - 1 + \Phi(-\dfrac{\sqrt{n}\varepsilon}{\sigma}) + \Phi( -\dfrac{\sqrt{n}\varepsilon}{\sigma}) =$\
-$2\Phi(-\dfrac{\sqrt{n}\varepsilon}{\sigma}) \leq 0.05$\
-$\Phi(-\dfrac{\sqrt{n}\varepsilon}{\sigma}) \leq 0.025$\
-$-\Phi(\dfrac{\sqrt{n}\varepsilon}{\sigma}) \leq -0.975$\
-$\Phi(\dfrac{\sqrt{n}\varepsilon}{\sigma}) \geq 0.975$\
-$\dfrac{\sqrt{n}\varepsilon}{\sigma} \geq 1.96$\
-$\sqrt{n} \geq \dfrac{1.96*\sigma}{\varepsilon}$\
-$n \geq (\dfrac{1.96*\sigma}{\varepsilon})^2$\
-$n \geq (\dfrac{1.96*\sqrt{p^*(1-p^*)}}{\varepsilon})^2$\
-
-```{r}
-epsilon = 0.03
-sigma = sqrt(p.theoretical*(1-p.theoretical))
-n = floor((1.96*(sigma)/epsilon)^2) + 1
-print(n)
-```
-
-```{r}
-hist(hamming.dist,
-    probability = TRUE,
-    breaks = 6,
-   #breaks = seq(0.5,6.6),
-    main = paste("Histogram of the number of digits wrongly decoded by hamming code"),
-    col = "lightblue",
-    xlab = "Values",
-    xlim = c(0,4)
-    )
-```
-
-This doesn't look like any of the known distributions. At first we thought it was a poisson distribution with parameter 1, because of the big spike at the begning, but the second spike threw us off. As far, as we\`re concerned, there is no distribution that has two spikes (at least there was no in P&S course, the internet suggests that this is a bimodal distribution)
 
 The next steps include detecting the errors in the received messages, correcting them, and then decoding the obtained messages. After this, you can continue with calculating all the quantities of interest
 
 **Do not forget to include several sentences summarizing your work and the conclusions you have made!**
-
-#### Conclusion
-
-In conclusion, we observed that the empirical probability converges to the theoretical one.
 
 ### Task 2.
 
@@ -293,7 +200,7 @@ max_diff <- max(abs(ecdf(sample_means)(xl)-pnorm(xl, mean = mu,  sd = sigma)))
 cat("For N =", n, "maximal difference between the two c.d.f.’s =", max_diff)
 ```
 
-For N = 50 maximal difference between the two c.d.f.'s = 0.02367508 For N = 25 maximal difference between the two c.d.f.'s = 0.01870537 For N = 10 maximal difference between the two c.d.f.'s = 0.01858273 For N = 5 maximal difference between the two c.d.f.'s = 0.02068409 \#### Depending on different n
+ #### Depending on different n
 
 ```{r}
 mean_results_on_N <- function(n, K){
@@ -388,7 +295,7 @@ As we can see Markov gives quite not an accurate result. It states that for all 
 
 $$P(S \geq t) = P(S - n\mu \geq t-n\mu) \leq P(|S-n\mu|\geq t-n\mu)$$\
 Using Chebyshev inequality:\
-$$ P(|S-n\mu|\geq t-n\mu) \leq (\frac{\sigma^2}{t-n\mu})^2 = (\frac{n\lambda}{t-n\lambda})^2$$ $$ (\frac{n\lambda}{t-n\lambda})^2 \leq 0.05 \implies n\lambda * ( 1 -\sqrt{0.05}) \leq t \implies n \leq 17.9...$$\
+$$ P(|S-n\mu|\geq t-n\mu) \leq (\frac{\sigma^2}{t-n\mu})^2 = (\frac{n\lambda}{t-n\lambda})^2$$ $$ (\frac{n\lambda}{t-n\lambda})^2 \leq 0.05 \implies n\lambda * ( 1 +\sqrt{0.05}) \leq t\sqrt{0.05} \implies n \leq 1.93$$\
 
 #### Central Limit Theorem
 
@@ -399,9 +306,22 @@ That gives the higher bound $n \approx 13.7 \approx 14$\
 
 ##### Summary
 
-AS we can see the results given with Markov inequality (0) are very not accurate and do not give us any bounds. Chebyshev inequality gives better approximation (18) but still not very accurate. And the central Limit Theorem gives results very close to the experimental ones (Both are equal to 14)
+AS we can see the results given with Markov inequality (0) are very not accurate and do not give us any bounds. Chebyshev inequality gives better approximation (2) but still not very accurate. And the central Limit Theorem gives results very close to the experimental ones (Both are equal to 14)
 
 #### Conclusion
+
+Having done experiments with divisions of radioactive elements that have Poisson distribution with specific parameters, we have got an interesting results
+
+Firstly, We got that our  theoretical approximation is really close to  the experimental one even for small number (n=5) of samples. And for bigger ones (from 30) the difference is very neglectable. 
+  
+For N = 50 maximal difference between the two c.d.f.’s = 0.02251375  with number of samples K = 1000
+
+Also we compared theoretical approximations for probabilities of exceeding the limit number of divisions in 1 second.
+  1. The maximal value safe of n is 14, that corresponds with CLT results and experimental ones.
+    - Markov inequality gives very inaccurate results
+    - Chebyshev inequality gives better approximation
+    - Central Limit Theorem gives results very close to the experimental ones
+
 
 ### Task 3.
 
@@ -430,10 +350,6 @@ nu1 <- 10  + teamid  # change this!
 K <- 1e3
 n <- 5
 sample_means <- colMeans(matrix(rexp(n*K, rate = nu1), nrow=n))
-hist(sample_means, 
-     breaks = 100,
-     col = "lightblue")
-#print(sample_means)
 ```
 
 #### Next, calculate the parameters of the standard normal approximation
@@ -452,23 +368,16 @@ By CLT we will get that M_n converges in low to Normal $$M_n \sim N(\frac{1}{\la
 And parameters are: $\mu = 1/\lambda$ $\sigma= 1/\sqrt{\lambda n}$\
 
 ```{r}
-
-#mu <- mean(sample_means)       # mean of sample
-#sigma <- sd(sample_means)    # variance of sample
-#print(mu)
-#print(sigma)
-
 mu <- 1/nu1   # change this!
 sigma <- 1/(nu1*sqrt(n))   # change this!
-
 ```
 
 #### We can now plot ecdf and cdf
 
 ```{r}
 xlims <- c(mu-3*sigma,mu+3*sigma)
-e_cdf <- ecdf(sample_means)
-plot(e_cdf, 
+Fs <- ecdf(sample_means)
+plot(Fs, 
      xlim = xlims, 
      col = "blue",
      lwd = 2,
@@ -480,33 +389,6 @@ xl <- seq(mu-3*sigma, mu+3*sigma, by=0.01)
 max_diff <- max(abs(ecdf(sample_means)(xl)-pnorm(xl, mean = mu, sd = sigma)))
 cat("For N =", n, "maximal difference between the two c.d.f.’s =", max_diff, "\n")
 ```
-
-```{r}
-
-# maximum distance?
-# following from Kolmogorov-Smirnov(should be valid here?)
-t_cdf <- pnorm(sample_means, mean = mu, sd = sigma)
-ks.test(x = t_cdf, y= e_cdf)$statistic
-```
-
-```{r}
-for(n in list(5, 10, 50)){ 
-  sample_means <- colMeans(matrix(rexp(n*K, rate = nu1), nrow=n))
-  mu <- mean(sample_means)       # mean of sample
-  sigma <- sd(sample_means)    # variance of sample
-  xlims <- c(mu-3*sigma,mu+3*sigma)
-  e_cdf <- ecdf(sample_means)
-  plot(e_cdf, 
-       xlim = xlims, 
-       col = "blue",
-       lwd = 2,
-       main = "Comparison of ecdf and cdf")
-  curve(pnorm(x, mean = mu, sd = sigma), col = "red", lwd = 2, add = TRUE)
-  ks.test(x = t_cdf, y= e_cdf)$statistic
-}
-```
-
-### Part 2
 
 ```{r}
 mean_results_on_N <- function(n, K){
@@ -545,6 +427,7 @@ res <- mean_results_on_N(5, 1e3)
 res <- mean_results_on_N(10, 1e3)
 res <-mean_results_on_N(50, 1e3)
 ```
+#### Subtask2
 
 ```{r}
 sum_results_on_N <- function(N, K){
@@ -572,10 +455,50 @@ while(TRUE){
 }
 
 ```
+#### Theoretical part
 
-**Next, proceed with all the remaining steps**
+We have that $S =X_1 + X_2 + ... + X_n$ must be less than $t = 1$\
+
+$$ P(S < t) = 1- P(S \geq t) \geq 0.95  \implies P(S\geq t) \leq 0.05$$\
+As long as S is a sum of n i.i.d.r.v. X of Poisson distribution with paramater\
+$\lambda = 28N$. $$\mu = E(X_i) = 1/\lambda \ \ \ \ and  \ \ \ \sigma^2 =Var(X_i) = 1/\lambda^2$$\
+$$E(S) = E(\sum X_i) = n*E(X_i) = n/\lambda$$\
+$$\sigma^2 = Var(S) = Var(\sum X_i) = nVar(X_i) = n/\lambda^2 $$\
+##### Markov inequality\
+$$ P(S \geq t)  \leq \frac{E(S)}{t} = \frac{n}{t\lambda}$$\
+Higher bound of probability must be < 0.05\
+$$ \frac{n}{t\nu N} \leq 0.05 \implies N \geq  100*20t\nu \approx 56000$$\
+
+##### Chebyshev inequality
+
+$$P(S \geq t) = P(S - n\mu \geq t-n\mu) \leq P(|S-n\mu|\geq t-n\mu)$$\
+Using Chebyshev inequality:\
+$$ P(|S-n\mu|\geq t-n\mu) \leq (\frac{\sigma^2}{t-n\mu})^2 = (\frac{n/\lambda^2}{t-n/\lambda})^2$$ \
+$$ (\frac{n/\lambda^2}{t-n/\lambda})^2 \leq 0.05 \implies (\frac{100/N^2\nu^2}{t-100/N\nu})^2 \leq 0.05 \implies ... \implies N \leq 1200$$\
+
+#### Central Limit Theorem
+
+$$P(S\leq t) = P( \frac{S-n\mu}{\sigma\sqrt{n}} \leq \frac{t-n\mu}{\sigma\sqrt{n}}) = Ф( \frac{t-n\mu}{\sigma\sqrt{n}}) \geq 0.95 \implies  \frac{t-n\mu}{\sigma\sqrt{n}} \geq  Ф^{-1}(0.95) $$\
+
+$$\frac{t-n/\lambda}{\sqrt{n}/\lambda} \geq  Ф^{-1}(0.95)$$\
+$Ф^{-1}(0.95) \approx 1.67$ 
+
+$$ 100/N\nu+ 16.7/N\nu \leq 1$$\
+That gives the higher bound $n \approx 4.83 \approx 5$\
+
+#### Summary
+As we can see the experimental results are very close to that ones that we obtained in theory even when the number of samples is low.
+The distribution of times for random samples tends to the Normal Distribution with specified parameters and the error is minimal.
+Also, we can see that approximations with Markov inequality is useless and do to gives any reasonable boundaries. Chebyshev gives better results but still not so accurate. However, the CLT calucation returns very accurate limit for `n`.
+
+
+
 
 **Do not forget to include several sentences summarizing your work and the conclusions you have made!**
+
+### General summary and conclusions
+
+SUmmarize here what you've done, whether you solved the tasks, what difficulties you had etc
 
 ### General summary and conclusions
 
